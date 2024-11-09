@@ -1,6 +1,4 @@
 const pwtl = require('../lib/passwordUtils');
-const emailtl = require('../lib/emailUtil');
-const emailController = require('./emailController');
 
 const {PrismaClient} = require('@prisma/client');
 

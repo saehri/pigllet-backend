@@ -29,13 +29,14 @@ model User {
     fingerprintId     String?
     createdAt         String
     updatedAt         String?
-    StoredData        StoredData?
-    EmailVerification EmailVerification?
+    storage           Storage?
+    emailVerification EmailVerification?
 }
 
-model StoredData {
+model Storage {
     id        Int     @id @default(autoincrement())
     userId    Int     @unique
+    data      String
     user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
     createdAt String
     updatedAt String?

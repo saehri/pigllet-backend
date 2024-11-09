@@ -36,6 +36,9 @@ async function authenticate(req, res) {
       where: {
         username,
       },
+      include: {
+        storage: true,
+      },
     });
 
     if (user !== null) {

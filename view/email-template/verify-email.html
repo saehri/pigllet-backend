@@ -1,0 +1,80 @@
+<!-- emailTemplate.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pigllet - Email Verification</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #ffffff;
+        padding: 10px;
+        color: #111;
+      }
+
+      .container {
+        background: #ff8c9d;
+        padding: 16px;
+        border-radius: 16px;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .header {
+        margin-bottom: 32px;
+      }
+
+      h1 {
+        margin-bottom: 20px;
+      }
+
+      .cta {
+        padding: 8px 16px;
+        border-radius: 200px;
+        background: #921828;
+        color: #ff8c9d;
+        display: inline-block;
+        text-align: center;
+        text-decoration: none;
+        margin-top: 32px;
+      }
+
+      .cta:hover {
+        background: #ba2b3e;
+      }
+
+      .footer {
+        text-align: center;
+        margin-top: 32px;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header"><strong>Pigllet</strong></div>
+
+      <div>
+        <h1>Verify your email address to get the most out of Pigllet.</h1>
+
+        <p>Click the button below to verify your email address</p>
+
+        <a href="{{verificationLink}}" class="cta">Verify your email</a>
+      </div>
+
+      <div class="footer">
+        <small
+          >If your are not signing up to our service, you can simple ignore this
+          message.</small
+        >
+      </div>
+    </div>
+  </body>
+</html>

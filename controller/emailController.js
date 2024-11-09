@@ -4,6 +4,7 @@ const genStr = require('../lib/generateRandomString');
 
 const prisma = new PrismaClient();
 
+// @func get all entries of verification link
 async function getAllvLinks(req, res) {
   try {
     const vLinks = await prisma.emailVerification.findMany();
@@ -14,13 +15,14 @@ async function getAllvLinks(req, res) {
   }
 }
 
+// @func - void send the user verification link
 async function sendUserVerificationEmail(req, res) {
   try {
     const {userId, email} = req.params;
-    const verifId = genStr(20);
+    const verifId = genStr(35);
 
-    // verification_link consist of url +
-    const vLink = await prisma.emailVerification.create({
+    // create the verification link
+    await prisma.emailVerification.create({
       data: {
         userId: Number(userId),
         verificationId: verifId,
@@ -42,6 +44,7 @@ async function sendUserVerificationEmail(req, res) {
   }
 }
 
+// @func void - handle the process of email address verification and verification link removal
 async function verifyUserEmail(req, res) {
   try {
     const {verifId} = req.params;
@@ -52,6 +55,29 @@ async function verifyUserEmail(req, res) {
       },
     });
 
+    if (vLink === null) {
+      return res.status(404).json({message: 'Invalid email verification link'});
+    }
+
+    // add a function that make the verification link invalid (and removed) if its older than 5 minutes after its creations
+    const date = new Date(vLink.createdAt);
+    const differenceInMs = date - new Date();
+
+    const differenceInMinutes = Math.abs(differenceInMs) / (1000 * 60);
+    if (differenceInMinutes > 5) {
+      // remove all verification link of the user
+      await prisma.emailVerification.deleteMany({
+        where: {
+          userId: vLink.userId,
+        },
+      });
+
+      return res.json({
+        message: 'Your verification link is invalid, please create a new one',
+      });
+    }
+
+    // update he user email status to verified
     const user = await prisma.user.update({
       where: {
         id: vLink.userId,
@@ -61,9 +87,10 @@ async function verifyUserEmail(req, res) {
       },
     });
 
-    await prisma.emailVerification.delete({
+    // remove all verification link for the user
+    await prisma.emailVerification.deleteMany({
       where: {
-        id: vLink.id,
+        userId: vLink.userId,
       },
     });
 

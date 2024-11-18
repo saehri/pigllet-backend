@@ -4,12 +4,49 @@ const {PrismaClient} = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
+const REGEX = {
+  password:
+    /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z\d!@#$%^&*(),.?":{}|<>]{6,}$/,
+  email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  username: /^(?=.{3,16}$)[a-zA-Z0-9](?:[a-zA-Z0-9-_]*[a-zA-Z0-9])?$/,
+};
+
+/* 
+A valid **password** must be at least 6 characters long, contain at least one uppercase letter, and include at least one special character (such as `!`, `@`, `#`, `$`, etc.). This ensures the password is sufficiently strong and secure.
+
+A valid **email address** must follow the standard format, starting with a series of characters (excluding spaces and `@`), followed by the `@` symbol, a domain name, and a period (`.`) before the domain extension (e.g., `.com`, `.net`). This ensures proper email syntax.
+
+A valid **username** should be between 3 and 16 characters long and can only include letters, numbers, underscores (`_`), and hyphens (`-`). It cannot contain spaces or other special characters and must not start or end with a hyphen or underscore. This provides flexibility while maintaining a consistent and valid format.
+
+*/
+
 // ------------------- CREATE FUNCTIONS
 async function createUser(req, res) {
   try {
     const data = req.body;
 
     const createdAt = new Date().toISOString();
+
+    if (!REGEX.password.test(data.password)) {
+      return res.status(500).json({
+        message:
+          'Password is invalid. Make sure your password match the specified rule!',
+      });
+    }
+
+    if (!REGEX.username.test(data.username)) {
+      return res.status(500).json({
+        message:
+          'Username is invalid. Make sure your username match the specified rule!',
+      });
+    }
+
+    if (!REGEX.email.test(data.username)) {
+      return res.status(500).json({
+        message:
+          'Email is invalid. Make sure your email match the specified rule!',
+      });
+    }
 
     // hash the user password, store the result in passwordHashed and set password to empty string
     const passwordHashed = await pwtl.hash(data.password);
@@ -142,6 +179,27 @@ async function editUserData(req, res) {
   try {
     const {userId} = req.params;
     const data = req.body;
+
+    if (!REGEX.password.test(data.password)) {
+      return res.status(500).json({
+        message:
+          'Password is invalid. Make sure your password match the specified rule!',
+      });
+    }
+
+    if (!REGEX.username.test(data.username)) {
+      return res.status(500).json({
+        message:
+          'Username is invalid. Make sure your username match the specified rule!',
+      });
+    }
+
+    if (!REGEX.email.test(data.username)) {
+      return res.status(500).json({
+        message:
+          'Email is invalid. Make sure your email match the specified rule!',
+      });
+    }
 
     let message = null;
     const exclusionLists = ['password'];

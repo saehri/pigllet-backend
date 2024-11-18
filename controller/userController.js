@@ -137,6 +137,42 @@ async function deleteUserById(req, res) {
   }
 }
 
+// ----------------------- PUT FUNCTIONS
+async function editUserData(req, res) {
+  try {
+    const {userId} = req.params;
+    const data = req.body;
+
+    let message = null;
+    const exclusionLists = ['password'];
+    for (const key in data) {
+      if (exclusionLists.includes(key)) {
+        const passwordHashed = await pwtl.hash(data.password);
+        data.passwordHashed = passwordHashed;
+        data.password = '';
+        message = 'Your password is updated successfully!';
+      }
+    }
+
+    const user = await prisma.user.update({
+      where: {
+        id: Number(userId),
+      },
+      data: {
+        ...data,
+        updatedAt: new Date().toISOString(),
+      },
+    });
+
+    res.json({
+      message: message ? message : 'Your data is updated successfully!',
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({message: error.message});
+  }
+}
+
 module.exports = {
   getAllUser,
   getUserById,
@@ -144,4 +180,5 @@ module.exports = {
   getUserByUsername,
   authenticate,
   deleteUserById,
+  editUserData,
 };

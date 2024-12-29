@@ -1,242 +1,153 @@
+const supabase = require('../lib/supabaseClient');
 const pwtl = require('../lib/passwordUtils');
+const validateUserData = require('../lib/userDataValidator');
 
-const {PrismaClient} = require('@prisma/client');
-
-const prisma = new PrismaClient();
-
-const REGEX = {
-  password:
-    /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z\d!@#$%^&*(),.?":{}|<>]{6,}$/,
-  email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  username: /^(?=.{3,16}$)[a-zA-Z0-9](?:[a-zA-Z0-9-_]*[a-zA-Z0-9])?$/,
-};
-
-/* 
-A valid **password** must be at least 6 characters long, contain at least one uppercase letter, and include at least one special character (such as `!`, `@`, `#`, `$`, etc.). This ensures the password is sufficiently strong and secure.
-
-A valid **email address** must follow the standard format, starting with a series of characters (excluding spaces and `@`), followed by the `@` symbol, a domain name, and a period (`.`) before the domain extension (e.g., `.com`, `.net`). This ensures proper email syntax.
-
-A valid **username** should be between 3 and 16 characters long and can only include letters, numbers, underscores (`_`), and hyphens (`-`). It cannot contain spaces or other special characters and must not start or end with a hyphen or underscore. This provides flexibility while maintaining a consistent and valid format.
-
-*/
 
 // ------------------- CREATE FUNCTIONS
 async function createUser(req, res) {
-  try {
-    const data = req.body;
+	try {
+		const userData = req.body;
+		
+		const isDataValid = validateUserData(userData);
+		if(isDataValid.valid === false) {
+			return res.status(500).json({message: isDataValid.message});
+		}
 
-    const createdAt = new Date().toISOString();
 
-    if (!REGEX.password.test(data.password)) {
-      return res.status(500).json({
-        message:
-          'Password is invalid. Make sure your password match the specified rule!',
-      });
-    }
+		// hash the user password, store the result in hashed_password and set password to empty string
+		const hashedPassword = await pwtl.hash(userData.password);
+		userData.hashed_password = hashedPassword;
+		userData.password = '';
 
-    if (!REGEX.username.test(data.username)) {
-      return res.status(500).json({
-        message:
-          'Username is invalid. Make sure your username match the specified rule!',
-      });
-    }
+		const {data, error} = await supabase.from('users').insert(userData).select().single();
 
-    if (!REGEX.email.test(data.username)) {
-      return res.status(500).json({
-        message:
-          'Email is invalid. Make sure your email match the specified rule!',
-      });
-    }
+		if(error) throw new Error(error.details)
 
-    // hash the user password, store the result in passwordHashed and set password to empty string
-    const passwordHashed = await pwtl.hash(data.password);
-    data.passwordHashed = passwordHashed;
-    data.password = '';
+		// TODO: - return user backup-ed data to the client
 
-    const user = await prisma.user.create({
-      data: {...data, createdAt},
-    });
-
-    res.json({message: 'Successfully created the user', data: user});
-  } catch (error) {
-    res.status(500).json({message: error.message});
-  }
+		res.json({message: 'Successfully created the user', data});
+	} catch (error) {
+		res.status(500).json({message: error.message});
+	}
 }
 
 // ----------------------- AUTHENTICATIONS
 async function authenticate(req, res) {
-  try {
-    const {username, password} = req.body;
+	try {
+		const {username, password} = req.body;
 
-    // find the user with username
-    const user = await prisma.user.findUnique({
-      where: {
-        username,
-      },
-      include: {
-        storage: true,
-      },
-    });
+		// find the user with username
+		const {data, error} = await supabase.from('users').select().eq('username', username).single()
 
-    if (user !== null) {
-      if (user.emailVerified == 0) {
-        // we use 0 because the databse only support 0 and 1 to represent boolean value
-        return res.json({
-          message:
-            'Please verify your email address by following the link we sent to your email address',
-        });
-      }
+		if (error) throw new Error(error.details)
+		
+		if (!data.is_active) return res.json({message: 'Please verify your email adress by  the link we sent to your email adress'})
+		
+		const isPasswordMatch = await pwtl.compare(password, data.hashed_password);
+		
+		if (isPasswordMatch) {
+			return res.json({message: 'Authentication successfull', data});
+		} else throw new Error('Failed to log in: Password does not match!');
 
-      // check if the password is match
-      const isPasswordMatch = await pwtl.compare(password, user.passwordHashed);
-      if (isPasswordMatch)
-        return res.json({message: 'Authentication successfull', data: user});
-
-      throw new Error('Failed to log in: Password does not match!');
-    } else {
-      return res
-        .status(404)
-        .json({message: 'There are no user with that username!'});
-    }
-  } catch (error) {
-    res.status(500).json({message: error.message});
-  }
+	} catch (error) {
+		res.status(500).json({message: error.message});
+	}
 }
 
 // ---------------- GET FUNCTIONS
-async function getAllUser(req, res) {
-  try {
-    const users = await prisma.user.findMany();
-    res.json({message: '', data: users});
-  } catch (error) {
-    res.status(500).json({message: error.message});
-  }
+async function getAllUser(_, res) {
+	try {
+		const {data} = await supabase.from('users').select()
+
+		res.json({message: '', data});
+	} catch (error) {
+		res.status(500).json({message: error.message});
+	}
 }
 
 async function getUserById(req, res) {
-  try {
-    const {userId} = req.params;
+	try {
+		const {user_id} = req.params;
 
-    const user = await prisma.user.findUnique({
-      where: {
-        id: Number(userId),
-      },
-    });
+		const {data, error} = await supabase.from('users').select().eq('id', user_id).single()
 
-    if (user == null) {
-      return res
-        .status(404)
-        .json({message: `There are no user with id ${userId}`});
-    }
-
-    res.json({message: `Found a user with id ${userId}`, data: user});
-  } catch (error) {
-    res.status(500).json({message: error.message});
-  }
+		if(error) throw new Error(error.details);
+		res.json({message: `Found a user with id ${user_id}`, data});
+	} catch (error) {
+		res.status(500).json({message: error.message});
+	}
 }
 
 async function getUserByUsername(req, res) {
-  try {
-    const {username} = req.params;
+	try {
+		const {username} = req.params;
 
-    const user = await prisma.user.findUnique({
-      where: {
-        username,
-      },
-    });
+		const {data, error} = await supabase.from('users').select().eq('username', username).single()
 
-    if (user == null) {
-      return res
-        .status(404)
-        .json({message: `There are no user with username ${username}`});
-    }
-
-    res.json({message: `Found a user with username ${username}`, data: user});
-  } catch (error) {
-    res.status(500).json({message: error.message});
-  }
+		if(error) throw new Error(error.details)
+		res.json({message: `Found a user with username ${username}`, data});
+	} catch (error) {
+		res.status(500).json({message: error.message});
+	}
 }
 
 // ------------------- DELETE FUNCTIONS
 async function deleteUserById(req, res) {
-  try {
-    const {userId} = req.params;
+	try {
+		const {user_id} = req.params;
 
-    const user = await prisma.user.delete({
-      where: {
-        id: Number(userId),
-      },
-    });
+		const {error} = await supabase.from('users').delete().eq('id', user_id)
 
-    res.json({message: 'Successfully deleted user from database'});
-  } catch (error) {
-    res.status(500).json({message: error.message});
-  }
+		if(error) throw new Error(error.details)
+		return res.json({message: 'Successfully deleted user from database'});
+	} catch (error) {
+		res.status(500).json({message: error.message});
+	}
 }
 
 // ----------------------- PUT FUNCTIONS
+
 async function editUserData(req, res) {
-  try {
-    const {userId} = req.params;
-    const data = req.body;
+	try {
+		const {user_id} = req.params;
+		const userData = req.body;
 
-    if (!REGEX.password.test(data.password)) {
-      return res.status(500).json({
-        message:
-          'Password is invalid. Make sure your password match the specified rule!',
-      });
-    }
+		// check whether the data to be updated is match the schema
+		const isDataValid = validateUserData(userData);
+		
+		if(isDataValid.valid === false) {
+			return res.status(500).json({message: isDataValid.message});
+		}
 
-    if (!REGEX.username.test(data.username)) {
-      return res.status(500).json({
-        message:
-          'Username is invalid. Make sure your username match the specified rule!',
-      });
-    }
+		/* 
+		- if the password is provided, hash the password and store the result in passwordHashed
+		- set the password to empty string
+		*/
+		if(userData.password) {
+			const hashedPassword = await pwtl.hash(userData.password);
+			userData.passwordHashed = hashedPassword;
+			userData.password = '';
+		}
 
-    if (!REGEX.email.test(data.username)) {
-      return res.status(500).json({
-        message:
-          'Email is invalid. Make sure your email match the specified rule!',
-      });
-    }
+		const {data, error} = await supabase.from('users').update({...userData, updated_at: new Date().toISOString()}).eq('id', user_id).select().single()
 
-    let message = null;
-    const exclusionLists = ['password'];
-    for (const key in data) {
-      if (exclusionLists.includes(key)) {
-        const passwordHashed = await pwtl.hash(data.password);
-        data.passwordHashed = passwordHashed;
-        data.password = '';
-        message = 'Your password is updated successfully!';
-      }
-    }
+		if(error) throw new Error(error.details);
 
-    const user = await prisma.user.update({
-      where: {
-        id: Number(userId),
-      },
-      data: {
-        ...data,
-        updatedAt: new Date().toISOString(),
-      },
-    });
-
-    res.json({
-      message: message ? message : 'Your data is updated successfully!',
-      data: user,
-    });
-  } catch (error) {
-    res.status(500).json({message: error.message});
-  }
+		res.json({
+			message: 'Your data is updated successfully!',
+			data
+		});
+	} catch (error) {
+		res.status(500).json({message: error.message});
+	}
 }
 
 module.exports = {
-  getAllUser,
-  getUserById,
-  createUser,
-  getUserByUsername,
-  authenticate,
-  deleteUserById,
-  editUserData,
+	getAllUser,
+	getUserById,
+	createUser,
+	getUserByUsername,
+	authenticate,
+	deleteUserById,
+	editUserData,
 };

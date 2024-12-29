@@ -15,9 +15,9 @@ app.use('/api', emailRouters);
 app.use('/api', ocrRoutes);
 
 app.get('/', async (req, res) => {
-  res.json({message: 'Hello world!'});
+	res.json({message: 'Hello world!'});
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running in port ${PORT}`);
+	console.log(`Server is running in port ${PORT}`);
 });

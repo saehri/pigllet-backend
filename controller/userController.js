@@ -1,7 +1,7 @@
 const supabase = require('../lib/supabaseClient');
 const pwtl = require('../lib/passwordUtils');
 const validateUserData = require('../lib/userDataValidator');
-
+const userDTO = require('../dto/userDTO')
 
 // ------------------- CREATE FUNCTIONS
 async function createUser(req, res) {
@@ -25,7 +25,7 @@ async function createUser(req, res) {
 
 		// TODO: - return user backup-ed data to the client
 
-		res.json({message: 'Successfully created the user', data});
+		res.json({message: 'Successfully created the user', data: userDTO(data)});
 	} catch (error) {
 		res.status(500).json({message: error.message});
 	}
@@ -59,7 +59,7 @@ async function getAllUser(_, res) {
 	try {
 		const {data} = await supabase.from('users').select()
 
-		res.json({message: '', data});
+		res.json({message: '', data: data.map(user => userDTO(user))});
 	} catch (error) {
 		res.status(500).json({message: error.message});
 	}
@@ -72,7 +72,7 @@ async function getUserById(req, res) {
 		const {data, error} = await supabase.from('users').select().eq('id', user_id).single()
 
 		if(error) throw new Error(error.details);
-		res.json({message: `Found a user with id ${user_id}`, data});
+		res.json({message: `Found a user with id ${user_id}`, data: userDTO(data)});
 	} catch (error) {
 		res.status(500).json({message: error.message});
 	}
@@ -85,7 +85,7 @@ async function getUserByUsername(req, res) {
 		const {data, error} = await supabase.from('users').select().eq('username', username).single()
 
 		if(error) throw new Error(error.details)
-		res.json({message: `Found a user with username ${username}`, data});
+		res.json({message: `Found a user with username ${username}`, data: userDTO(data)});
 	} catch (error) {
 		res.status(500).json({message: error.message});
 	}
@@ -135,7 +135,7 @@ async function editUserData(req, res) {
 
 		res.json({
 			message: 'Your data is updated successfully!',
-			data
+			data: userDTO(data)
 		});
 	} catch (error) {
 		res.status(500).json({message: error.message});

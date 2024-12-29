@@ -17,7 +17,7 @@ async function scanReceipt(req, res) {
 
 		// Make API request to Eden AI
 		const response = await axios.post(
-			'https://api.edenai.run/v2/workflow/76de1037-5340-4ee1-a797-ff2c150f4f2f/execution/',
+			process.env.EDEN_AI_API_URL,
 			formData,
 			{
 				headers: {
@@ -43,7 +43,7 @@ async function getScannedResult(req, res) {
 
 		// Make API request to retrieve the result only after getting executionId
 		const response = await axios.get(
-			`https://api.edenai.run/v2/workflow/76de1037-5340-4ee1-a797-ff2c150f4f2f/execution/${executionId}`,
+			`${process.env.EDEN_AI_API_URL}${executionId}`,
 			{
 				headers: {
 					'Content-Type': 'application/json',

@@ -7,11 +7,12 @@ const validateUserData = require('../lib/userDataValidator');
 async function createUser(req, res) {
 	try {
 		const userData = req.body;
-
+		
 		const isDataValid = validateUserData(userData);
 		if(isDataValid.valid === false) {
 			return res.status(500).json({message: isDataValid.message});
 		}
+
 
 		// hash the user password, store the result in hashed_password and set password to empty string
 		const hashedPassword = await pwtl.hash(userData.password);
@@ -20,7 +21,7 @@ async function createUser(req, res) {
 
 		const {data, error} = await supabase.from('users').insert(userData).select().single();
 
-		if(error) throw new Error(error.message)
+		if(error) throw new Error(error.details)
 
 		// TODO: - return user backup-ed data to the client
 
@@ -38,7 +39,7 @@ async function authenticate(req, res) {
 		// find the user with username
 		const {data, error} = await supabase.from('users').select().eq('username', username).single()
 
-		if (error) throw new Error(error.message)
+		if (error) throw new Error(error.details)
 		
 		if (!data.is_active) return res.json({message: 'Please verify your email adress by  the link we sent to your email adress'})
 		
@@ -66,12 +67,12 @@ async function getAllUser(_, res) {
 
 async function getUserById(req, res) {
 	try {
-		const {userId} = req.params;
+		const {user_id} = req.params;
 
-		const {data, error} = await supabase.from('users').select().eq('id', userId).single()
+		const {data, error} = await supabase.from('users').select().eq('id', user_id).single()
 
-		if(error) throw new Error(error.message);
-		res.json({message: `Found a user with id ${userId}`, data});
+		if(error) throw new Error(error.details);
+		res.json({message: `Found a user with id ${user_id}`, data});
 	} catch (error) {
 		res.status(500).json({message: error.message});
 	}
@@ -83,7 +84,7 @@ async function getUserByUsername(req, res) {
 
 		const {data, error} = await supabase.from('users').select().eq('username', username).single()
 
-		if(error) throw new Error(error.message)
+		if(error) throw new Error(error.details)
 		res.json({message: `Found a user with username ${username}`, data});
 	} catch (error) {
 		res.status(500).json({message: error.message});
@@ -93,11 +94,11 @@ async function getUserByUsername(req, res) {
 // ------------------- DELETE FUNCTIONS
 async function deleteUserById(req, res) {
 	try {
-		const {userId} = req.params;
+		const {user_id} = req.params;
 
-		const {error} = await supabase.from('users').delete().eq('id', userId)
+		const {error} = await supabase.from('users').delete().eq('id', user_id)
 
-		if(error) throw new Error(error.message)
+		if(error) throw new Error(error.details)
 		return res.json({message: 'Successfully deleted user from database'});
 	} catch (error) {
 		res.status(500).json({message: error.message});
@@ -108,7 +109,7 @@ async function deleteUserById(req, res) {
 
 async function editUserData(req, res) {
 	try {
-		const {userId} = req.params;
+		const {user_id} = req.params;
 		const userData = req.body;
 
 		// check whether the data to be updated is match the schema
@@ -128,9 +129,9 @@ async function editUserData(req, res) {
 			userData.password = '';
 		}
 
-		const {data, error} = await supabase.from('users').update({...userData, updated_at: new Date().toISOString()}).eq('id', userId).select().single()
+		const {data, error} = await supabase.from('users').update({...userData, updated_at: new Date().toISOString()}).eq('id', user_id).select().single()
 
-		if(error) throw new Error(error.message);
+		if(error) throw new Error(error.details);
 
 		res.json({
 			message: 'Your data is updated successfully!',

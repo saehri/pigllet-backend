@@ -135,7 +135,7 @@ async function editUserData(req, res) {
 
 		res.json({
 			message: 'Your data is updated successfully!',
-			data
+			data: userDTO(data)
 		});
 	} catch (error) {
 		res.status(500).json({message: error.message});

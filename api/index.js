@@ -2,9 +2,9 @@ const express = require('express');
 require('dotenv').config()
 
 // routers
-const userRouters = require('./routes/usersRoutes');
-const emailRouters = require('./routes/emailRoutes');
-const ocrRoutes = require('./routes/ocrRoutes');
+const userRouters = require('../routes/usersRoutes');
+const emailRouters = require('../routes/emailRoutes');
+const ocrRoutes = require('../routes/ocrRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -21,3 +21,5 @@ app.get('/', async (req, res) => {
 app.listen(PORT, () => {
 	console.log(`Server is running in port ${PORT}`);
 });
+
+module.exports = app

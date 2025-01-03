@@ -1,6 +1,7 @@
 const axios = require('axios');
 const FormData = require('form-data');
-const fs = require('fs');
+
+const ocrResponseDTO = require('../dto/ocrResponseDTO')
 
 async function scanReceipt(req, res) {
 	try {
@@ -52,7 +53,7 @@ async function getScannedResult(req, res) {
 			}
 		);
 
-		res.json({message: '', data: response.data});
+		res.json({message: '', data: ocrResponseDTO(response.data)});
 	} catch (error) {
 		res.status(500).json({message: error.message});
 	}
